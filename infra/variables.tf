@@ -27,8 +27,9 @@ variable "app_instance_type" {
 }
 
 variable "nat_instance_type" {
-  type    = string
-  default = "t3.nano"
+  description = "Must be Free Tier eligible on AWS Free plan accounts (t3.nano is rejected)."
+  type        = string
+  default     = "t3.micro"
 }
 
 variable "db_instance_class" {
