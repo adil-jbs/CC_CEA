@@ -1,0 +1,36 @@
+# Runs on every EC2 instance in the Auto Scaling Group (copied to /opt/ctm/docker-compose.yml).
+# Web (Nginx :80) and API (Express :3000) run side by side; the database is Amazon RDS.
+# Values come from /opt/ctm/.env, which deploy/ec2-deploy.sh writes from SSM Parameter Store.
+# Port 3000 is NOT published: only Nginx can reach the API, over the compose network.
+services:
+  app:
+    image: ${IMAGE_REPO}/ctm-api:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /ctm/app
+        # "tag" names the log stream. (awslogs-stream-prefix is not a valid option.)
+        tag: "api/{{.ID}}"
+
+  web:
+    image: ${IMAGE_REPO}/ctm-web:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: app:3000
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION}
+        awslogs-group: /ctm/app
+        tag: "web/{{.ID}}"

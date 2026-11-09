@@ -1,0 +1,25 @@
+#!/bin/bash
+# Boot script for app instances (launch template user data).
+# Installs Docker + Compose, writes the compose file and deploy script, then deploys.
+set -euxo pipefail
+
+dnf install -y docker
+systemctl enable --now docker
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/ctm
+
+cat > /opt/ctm/docker-compose.yml <<'COMPOSE_EOF'
+${compose_file}
+COMPOSE_EOF
+
+cat > /opt/ctm/deploy.sh <<'DEPLOY_EOF'
+${deploy_script}
+DEPLOY_EOF
+chmod 700 /opt/ctm/deploy.sh
+
+/opt/ctm/deploy.sh

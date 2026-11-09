@@ -1,0 +1,134 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Never run two deployments at the same time.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+      - name: Run API tests
+        working-directory: app
+        run: npm test
+
+  build_and_push:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image prefix (GHCR needs lower case)
+        run: echo "IMAGE_REPO=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}/ctm-api:${{ github.sha }}
+            ${{ env.IMAGE_REPO }}/ctm-api:latest
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}/ctm-web:${{ github.sha }}
+            ${{ env.IMAGE_REPO }}/ctm-web:latest
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+  deploy:
+    needs: build_and_push
+    # Turn on by setting the repository variable DEPLOY_ENABLED=true once the AWS stack exists.
+    if: github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Learner Lab cannot create an OIDC provider, so we use the lab's temporary
+      # session keys (refresh these 3 secrets at the start of each lab session).
+      - name: Configure AWS credentials (Learner Lab session keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Record the image tag to deploy
+        run: |
+          aws ssm put-parameter --name /ctm/image_tag --type String \
+            --value "${{ github.sha }}" --overwrite
+
+      - name: Run the deploy script on the instances
+        id: send
+        run: |
+          CMD_ID=$(aws ssm send-command \
+            --document-name AWS-RunShellScript \
+            --targets Key=tag:app,Values=ctm \
+            --parameters 'commands=["/opt/ctm/deploy.sh"]' \
+            --comment "deploy ${GITHUB_SHA::7}" \
+            --query Command.CommandId --output text)
+          echo "command_id=$CMD_ID" >> "$GITHUB_OUTPUT"
+          echo "SSM command: $CMD_ID"
+
+      - name: Wait for every instance to finish
+        run: |
+          CMD_ID=${{ steps.send.outputs.command_id }}
+          for i in $(seq 1 40); do
+            sleep 10
+            STATUSES=$(aws ssm list-command-invocations --command-id "$CMD_ID" \
+              --query 'CommandInvocations[].Status' --output text)
+            echo "[$i] $STATUSES"
+            if [ -n "$STATUSES" ] && ! echo "$STATUSES" | grep -qE 'Pending|InProgress|Delayed'; then
+              break
+            fi
+          done
+          aws ssm list-command-invocations --command-id "$CMD_ID" --details \
+            --query 'CommandInvocations[].[InstanceId,Status,CommandPlugins[0].Output]' --output text
+          if [ -z "$STATUSES" ] || echo "$STATUSES" | tr '\t' '\n' | grep -vq '^Success$'; then
+            echo "Deployment failed on at least one instance"; exit 1
+          fi
+
+      - name: Health check through the load balancer
+        run: |
+          BASE="http://$(aws elbv2 describe-load-balancers --names ctm-alb \
+            --query 'LoadBalancers[0].DNSName' --output text)"
+          echo "BASE=$BASE"
+          for i in $(seq 1 10); do
+            HEALTH=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/healthz")
+            API=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/tasks")
+            echo "health=$HEALTH api=$API"
+            [ "$HEALTH" = 200 ] && [ "$API" = 200 ] && exit 0
+            sleep 6
+          done
+          exit 1

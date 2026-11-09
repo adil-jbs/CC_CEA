@@ -1,0 +1,10 @@
+node_modules/
+.env
+.DS_Store
+
+# Terraform (state holds the DB password: never commit it)
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+infra/.terraform.tfstate.lock.info

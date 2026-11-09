@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Manager</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 780px; margin: 40px auto; padding: 0 16px; color: #222; background: #fafafa; }
+  h1 { margin-bottom: 4px; }
+  .sub { color: #666; margin-top: 0; }
+  form { display: grid; grid-template-columns: 3fr 1fr 1fr auto; gap: 8px; margin: 20px 0 8px; }
+  input, select, button { padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; }
+  button { cursor: pointer; background: #2563eb; color: #fff; border: none; }
+  button.secondary { background: #e5e7eb; color: #222; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+  tr.done td.title { text-decoration: line-through; color: #999; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .High { background: #fee2e2; } .Medium { background: #fef3c7; } .Low { background: #dcfce7; }
+  #summary { margin-top: 16px; font-size: 16px; }
+  #error { color: #b00020; min-height: 20px; }
+  @media (max-width: 600px) { form { grid-template-columns: 1fr 1fr; } form #title { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+  <h1>Task Manager</h1>
+  <p class="sub">A simple 3-tier app: Nginx → Node.js API → MySQL</p>
+
+  <form id="form">
+    <input id="title" placeholder="What needs to be done?" maxlength="120" required>
+    <select id="priority">
+      <option>Low</option><option selected>Medium</option><option>High</option>
+    </select>
+    <input id="due_date" type="date">
+    <button type="submit">Add</button>
+  </form>
+  <div id="error"></div>
+
+  <table>
+    <thead><tr><th>Done</th><th>Task</th><th>Priority</th><th>Due</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="summary"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const res = await fetch('/api' + path, { headers: { 'Content-Type': 'application/json' }, ...options });
+  if (!res.ok && res.status !== 204) throw new Error((await res.json().catch(() => ({}))).error || 'Request failed');
+  return res.status === 204 ? null : res.json();
+}
+
+async function load() {
+  try {
+    const tasks = await api('/tasks');
+    $('rows').innerHTML = '';
+    for (const t of tasks) {
+      const tr = document.createElement('tr');
+      if (t.done) tr.className = 'done';
+
+      const check = document.createElement('input');
+      check.type = 'checkbox';
+      check.checked = t.done;
+      check.onchange = () => run(() => api(`/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: check.checked }) }));
+
+      const title = document.createElement('td');
+      title.className = 'title';
+      title.textContent = t.title;
+
+      const badge = document.createElement('span');
+      badge.className = `badge ${t.priority}`;
+      badge.textContent = t.priority;
+
+      const del = document.createElement('button');
+      del.className = 'secondary';
+      del.textContent = 'Delete';
+      del.onclick = () => run(() => api(`/tasks/${t.id}`, { method: 'DELETE' }));
+
+      for (const child of [check, title, badge, t.due_date || '—', del]) {
+        if (child instanceof HTMLTableCellElement) { tr.appendChild(child); continue; }
+        const td = document.createElement('td');
+        td.append(child);
+        tr.appendChild(td);
+      }
+      $('rows').appendChild(tr);
+    }
+    const done = tasks.filter((t) => t.done).length;
+    $('summary').textContent = `${done} of ${tasks.length} tasks done`;
+    $('error').textContent = '';
+  } catch {
+    $('error').textContent = 'Could not reach the API';
+  }
+}
+
+async function run(action) {
+  try { await action(); } catch (err) { $('error').textContent = err.message; }
+  load();
+}
+
+$('form').onsubmit = async (ev) => {
+  ev.preventDefault();
+  const body = { title: $('title').value, priority: $('priority').value, due_date: $('due_date').value };
+  try {
+    await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
+    $('title').value = ''; $('due_date').value = '';
+    load();
+  } catch (err) { $('error').textContent = err.message; }
+};
+
+load();
+</script>
+</body>
+</html>

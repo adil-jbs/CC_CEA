@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars and fill in (terraform.tfvars is git-ignored).
+# Must be lower case: ghcr.io/<your-github-username>
+image_repo = "ghcr.io/your-github-username"

@@ -1,0 +1,27 @@
+# ===== TIER 1: Web / Presentation layer (Nginx) =====
+# Serves the static page and forwards /api/* calls to the API tier.
+# ${API_UPSTREAM} is filled in when the container starts:
+#   - docker-compose:  app:3000
+#   - AWS:             <private IP of app EC2 or internal ALB DNS>:3000
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://${API_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Lets an internet-facing load balancer health-check the web tier itself.
+    location = /healthz {
+        access_log off;
+        return 200 'ok';
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

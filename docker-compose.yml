@@ -1,0 +1,39 @@
+# Runs all 3 tiers on one machine for local testing:
+#   web (Nginx, port 8080)  ->  app (Node API, port 3000)  ->  db (MySQL, port 3306)
+# Only the web tier is exposed to your machine, just like on AWS.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: tasks_db
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      retries: 20
+
+  app:
+    build: ./app
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: tasks_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    environment:
+      API_UPSTREAM: app:3000
+    ports:
+      - "8080:80"
+    depends_on:
+      - app
+
+volumes:
+  db-data:
