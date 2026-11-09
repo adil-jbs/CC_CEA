@@ -44,7 +44,7 @@ resource "aws_launch_template" "app" {
   vpc_security_group_ids = [aws_security_group.app.id]
 
   iam_instance_profile {
-    name = var.instance_profile_name
+    arn = aws_iam_instance_profile.app.arn
   }
 
   metadata_options {
@@ -82,6 +82,9 @@ resource "aws_launch_template" "app" {
     aws_ssm_parameter.image_tag,
     aws_cloudwatch_log_group.app,
     aws_route_table_association.app,
+    aws_iam_role_policy.app,
+    aws_iam_role_policy_attachment.ssm_core,
+    aws_iam_role_policy_attachment.ecr_read,
   ]
 }
 

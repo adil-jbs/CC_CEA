@@ -83,7 +83,6 @@ resource "aws_instance" "nat" {
   vpc_security_group_ids      = [aws_security_group.nat.id]
   associate_public_ip_address = true
   source_dest_check           = false
-  iam_instance_profile        = var.instance_profile_name
   user_data                   = file("${path.module}/nat_user_data.sh")
   user_data_replace_on_change = true
 

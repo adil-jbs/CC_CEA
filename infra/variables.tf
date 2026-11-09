@@ -1,5 +1,5 @@
 variable "region" {
-  description = "AWS region. Learner Lab only allows us-east-1 or us-west-2."
+  description = "AWS region."
   type        = string
   default     = "us-east-1"
 }
@@ -10,20 +10,15 @@ variable "project" {
   default     = "ctm"
 }
 
-variable "image_repo" {
-  description = "Container registry prefix, lower case, e.g. ghcr.io/your-github-user"
+variable "budget_email" {
+  description = "Where AWS Budgets sends cost alerts."
   type        = string
-
-  validation {
-    condition     = var.image_repo == lower(var.image_repo)
-    error_message = "image_repo must be lower case (GHCR requires it)."
-  }
 }
 
-variable "instance_profile_name" {
-  description = "Existing instance profile. Learner Lab cannot create IAM roles, so we reuse LabInstanceProfile."
+variable "budget_usd" {
+  description = "Monthly budget in USD; alerts at 50 % actual and 100 % forecast."
   type        = string
-  default     = "LabInstanceProfile"
+  default     = "10"
 }
 
 variable "app_instance_type" {

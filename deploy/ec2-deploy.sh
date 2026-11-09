@@ -13,11 +13,19 @@ param() {
     --query Parameter.Value --output text
 }
 
+IMAGE_REPO=$(param /ctm/image_repo)
+IMAGE_TAG=$(param /ctm/image_tag)
+
+# Private ECR registry: log in with the instance role before pulling.
+if [[ "$IMAGE_REPO" == *.dkr.ecr.* ]]; then
+  aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$IMAGE_REPO"
+fi
+
 umask 077
 cat > /opt/ctm/.env <<EOF
 AWS_REGION=$REGION
-IMAGE_REPO=$(param /ctm/image_repo)
-IMAGE_TAG=$(param /ctm/image_tag)
+IMAGE_REPO=$IMAGE_REPO
+IMAGE_TAG=$IMAGE_TAG
 DB_HOST=$(param /ctm/db_host)
 DB_USER=$(param /ctm/db_user)
 DB_PASSWORD=$(param /ctm/db_password)
