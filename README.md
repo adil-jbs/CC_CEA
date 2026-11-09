@@ -1,4 +1,4 @@
-# Task Manager: a simple 3-tier application
+# Cloud Notes: a simple 3-tier application
 
 | Tier | What | Tech | Folder | Port |
 |------|------|------|--------|------|
@@ -17,10 +17,10 @@ The browser only talks to the web tier. Only the app tier talks to the database.
 | Method | Path | Body | Purpose |
 |--------|------|------|---------|
 | GET | `/api/health` | – | Health check (for load balancers) |
-| GET | `/api/tasks` | – | List tasks |
-| POST | `/api/tasks` | `{ "title", "priority": "Low/Medium/High", "due_date": "YYYY-MM-DD" (optional) }` | Create a task |
-| PATCH | `/api/tasks/:id` | `{ "done": true/false }` | Mark done / not done |
-| DELETE | `/api/tasks/:id` | – | Delete a task |
+| GET | `/api/notes` | – | List notes (pinned first, then most recently edited) |
+| POST | `/api/notes` | `{ "title", "body", "color": "yellow/blue/green/pink/purple", "pinned": true/false }` (title or body required) | Create a note |
+| PATCH | `/api/notes/:id` | any of `title`, `body`, `color`, `pinned` | Update a note |
+| DELETE | `/api/notes/:id` | – | Delete a note |
 
 ## Run locally (Docker)
 

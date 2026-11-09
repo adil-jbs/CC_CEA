@@ -5,15 +5,16 @@
 CREATE DATABASE IF NOT EXISTS tasks_db;
 USE tasks_db;
 
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS notes (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(120) NOT NULL,
-  priority VARCHAR(10) NOT NULL DEFAULT 'Medium',
-  due_date DATE NULL,
-  done BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  title VARCHAR(120) NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  color VARCHAR(10) NOT NULL DEFAULT 'yellow',
+  pinned BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-INSERT INTO tasks (title, priority, due_date) VALUES
-  ('Deploy the web tier', 'High', NULL),
-  ('Connect the API to RDS', 'Medium', NULL);
+INSERT INTO notes (title, body, color, pinned) VALUES
+  ('Welcome to Cloud Notes', 'Nginx serves this page, a Node.js API handles requests, and MySQL stores your notes.', 'purple', TRUE),
+  ('Shopping list', 'Milk, eggs, bread', 'yellow', FALSE);

@@ -130,7 +130,7 @@ jobs:
           echo "BASE=$BASE"
           for i in $(seq 1 10); do
             HEALTH=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/healthz")
-            API=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/tasks")
+            API=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/notes")
             echo "health=$HEALTH api=$API"
             [ "$HEALTH" = 200 ] && [ "$API" = 200 ] && exit 0
             sleep 6
