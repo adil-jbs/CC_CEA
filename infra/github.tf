@@ -2,10 +2,32 @@
 # No AWS keys are stored in GitHub. The workflow gets short-lived credentials
 # for this role, and only from the main branch of the configured repository.
 
-variable "github_repo" {
-  description = "owner/name of the GitHub repository allowed to deploy."
-  type        = string
-  default     = "adil-jbs/CC_CEA"
+variable "github_owner" {
+  type    = string
+  default = "adil-jbs"
+}
+
+variable "github_repo_name" {
+  type    = string
+  default = "CC_CEA"
+}
+
+# GitHub now puts immutable IDs in the OIDC "sub" claim
+# (repo:<owner>@<owner_id>/<repo>@<repo_id>:ref:...). Found via CloudTrail
+# (AssumeRoleWithWebIdentity AccessDenied, userIdentity.userName).
+# IDs come from https://api.github.com/repos/<owner>/<repo> (owner.id, id).
+variable "github_owner_id" {
+  type    = string
+  default = "318685806"
+}
+
+variable "github_repo_id" {
+  type    = string
+  default = "1451615130"
+}
+
+locals {
+  github_sub_main = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo_name}@${var.github_repo_id}:ref:refs/heads/main"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -29,7 +51,7 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = [local.github_sub_main]
     }
   }
 }
