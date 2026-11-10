@@ -63,7 +63,7 @@ resource "aws_ssm_parameter" "db_password" {
 resource "aws_ssm_parameter" "image_repo" {
   name  = "/${var.project}/image_repo"
   type  = "String"
-  value = local.registry
+  value = var.image_registry
 }
 
 # The pipeline overwrites this with the commit SHA on every release.

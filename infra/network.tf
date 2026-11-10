@@ -97,6 +97,12 @@ resource "aws_instance" "nat" {
   }
 
   tags = { Name = "${var.project}-nat" }
+
+  # A newer Amazon Linux AMI must not silently replace the NAT (outbound outage).
+  # Update the OS deliberately with: terraform apply -replace=aws_instance.nat
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 # ---------- Route tables ----------

@@ -19,8 +19,7 @@ permissions:
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::865526619696:role/ctm-github-deploy
-  ECR_REGISTRY: 865526619696.dkr.ecr.us-east-1.amazonaws.com
-  GHCR_REGISTRY: ghcr.io/adil-jbs
+  GHCR_REGISTRY: ghcr.io/adil-jbs # public packages; the EC2 servers pull from here
 
 jobs:
   test:
@@ -46,20 +45,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show the OIDC subject AWS will check
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-          python3 -c "import sys,json,base64; p=sys.argv[1].split('.')[1]; p+='='*(-len(p)%4); print('sub =', json.loads(base64.urlsafe_b64decode(p))['sub'])" "$TOKEN" || true
-
-      - name: Configure AWS credentials (OIDC, no stored keys)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - uses: aws-actions/amazon-ecr-login@v2
-
       - name: Log in to GHCR (built-in GITHUB_TOKEN)
         uses: docker/login-action@v3
         with:
@@ -78,8 +63,6 @@ jobs:
           tags: |
             ${{ env.GHCR_REGISTRY }}/ctm-api:${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/ctm-api:latest
-            ${{ env.ECR_REGISTRY }}/ctm-api:${{ github.sha }}
-            ${{ env.ECR_REGISTRY }}/ctm-api:latest
 
       - name: Build and push web image
         uses: docker/build-push-action@v6
@@ -91,8 +74,6 @@ jobs:
           tags: |
             ${{ env.GHCR_REGISTRY }}/ctm-web:${{ github.sha }}
             ${{ env.GHCR_REGISTRY }}/ctm-web:latest
-            ${{ env.ECR_REGISTRY }}/ctm-web:${{ github.sha }}
-            ${{ env.ECR_REGISTRY }}/ctm-web:latest
 
   deploy:
     needs: build_and_push

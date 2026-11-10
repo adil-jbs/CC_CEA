@@ -64,26 +64,6 @@ resource "aws_iam_role" "github_deploy" {
 
 data "aws_iam_policy_document" "github_deploy" {
   statement {
-    sid       = "EcrLogin"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid = "EcrPushOwnRepos"
-    actions = [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:BatchGetImage",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:InitiateLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:CompleteLayerUpload",
-      "ecr:PutImage",
-    ]
-    resources = [for r in aws_ecr_repository.image : r.arn]
-  }
-
-  statement {
     sid       = "SetReleaseTag"
     actions   = ["ssm:PutParameter", "ssm:GetParameter"]
     resources = [aws_ssm_parameter.image_tag.arn]

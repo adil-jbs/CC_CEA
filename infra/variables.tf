@@ -51,3 +51,9 @@ variable "asg_max" {
   type    = number
   default = 3
 }
+
+variable "image_registry" {
+  description = "Where the servers pull ctm-api and ctm-web from (public GitHub Container Registry packages)."
+  type        = string
+  default     = "ghcr.io/adil-jbs"
+}

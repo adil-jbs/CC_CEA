@@ -11,8 +11,8 @@ output "asg_name" {
   value = aws_autoscaling_group.app.name
 }
 
-output "ecr_registry" {
-  value = local.registry
+output "image_registry" {
+  value = var.image_registry
 }
 
 output "rds_endpoint" {

@@ -72,6 +72,13 @@ resource "aws_launch_template" "app" {
     tags          = { Name = "${var.project}-app", app = var.project }
   }
 
+  # A newer Amazon Linux AMI must not roll the servers as a side effect of an
+  # unrelated change. To update the OS on purpose, remove image_id here, apply,
+  # and the ASG instance refresh replaces the servers one at a time.
+  lifecycle {
+    ignore_changes = [image_id]
+  }
+
   # Instances read these at boot, so they must exist first.
   depends_on = [
     aws_ssm_parameter.db_host,
@@ -84,7 +91,6 @@ resource "aws_launch_template" "app" {
     aws_route_table_association.app,
     aws_iam_role_policy.app,
     aws_iam_role_policy_attachment.ssm_core,
-    aws_iam_role_policy_attachment.ecr_read,
   ]
 }
 

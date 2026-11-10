@@ -6,6 +6,11 @@ resource "aws_budgets_budget" "monthly" {
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
+  # Settings AWS adds itself (billing view, cost metric) are left as they are.
+  lifecycle {
+    ignore_changes = [billing_view_arn, metrics]
+  }
+
   notification {
     comparison_operator        = "GREATER_THAN"
     threshold                  = 50

@@ -22,12 +22,6 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Pull images from ECR.
-resource "aws_iam_role_policy_attachment" "ecr_read" {
-  role       = aws_iam_role.app.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
 data "aws_iam_policy_document" "app" {
   statement {
     sid       = "ReadOwnParameters"
