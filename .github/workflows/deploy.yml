@@ -13,12 +13,14 @@ concurrency:
 
 permissions:
   contents: read
+  packages: write # lets the built-in GITHUB_TOKEN push images to GHCR
   id-token: write # lets the job request a GitHub OIDC token for AWS
 
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::865526619696:role/ctm-github-deploy
   ECR_REGISTRY: 865526619696.dkr.ecr.us-east-1.amazonaws.com
+  GHCR_REGISTRY: ghcr.io/adil-jbs
 
 jobs:
   test:
@@ -57,6 +59,14 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Log in to GHCR (built-in GITHUB_TOKEN)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push API image
@@ -64,7 +74,10 @@ jobs:
         with:
           context: ./api
           push: true
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           tags: |
+            ${{ env.GHCR_REGISTRY }}/ctm-api:${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/ctm-api:latest
             ${{ env.ECR_REGISTRY }}/ctm-api:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/ctm-api:latest
 
@@ -74,7 +87,10 @@ jobs:
           context: ./web
           push: true
           build-args: APP_VERSION=${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           tags: |
+            ${{ env.GHCR_REGISTRY }}/ctm-web:${{ github.sha }}
+            ${{ env.GHCR_REGISTRY }}/ctm-web:latest
             ${{ env.ECR_REGISTRY }}/ctm-web:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/ctm-web:latest
 
