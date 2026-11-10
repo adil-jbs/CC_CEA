@@ -2,7 +2,8 @@
 // that returns queued results, so these run in CI without a database.
 const test = require('node:test');
 const assert = require('node:assert');
-const { app, pool } = require('./server');
+const app = require('../src/app');
+const pool = require('../src/db/pool');
 
 let server;
 let base;

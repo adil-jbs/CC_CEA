@@ -18,7 +18,7 @@ dnf install -y docker git
 systemctl enable --now docker
 
 rm -rf /opt/tasks && git clone "$REPO_URL" /opt/tasks
-docker build -t task-api /opt/tasks/app
+docker build -t task-api /opt/tasks/api
 
 docker rm -f task-api 2>/dev/null || true
 docker run -d --name task-api --restart unless-stopped -p 3000:3000 \

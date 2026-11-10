@@ -1,0 +1,16 @@
+{
+  "name": "cloud-notes-api",
+  "version": "1.0.0",
+  "description": "Tier 2 (API) of the 3-tier Cloud Notes app",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0"
+  }
+}

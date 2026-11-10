@@ -1,7 +1,7 @@
 // Unit tests for note validation (no server, no database).
 const test = require('node:test');
 const assert = require('node:assert');
-const { validateNote } = require('./server');
+const { validateNote } = require('../src/services/notes.service');
 
 test('accepts a note with a title and text', () => {
   assert.strictEqual(validateNote({ title: 'Shopping', body: 'milk, eggs', color: 'blue', pinned: true }), null);

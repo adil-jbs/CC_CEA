@@ -3,14 +3,41 @@
 | Tier | What | Tech | Folder | Port |
 |------|------|------|--------|------|
 | 1. Web (presentation) | Static page + reverse proxy | Nginx | `web/` | 80 |
-| 2. App (logic) | REST API | Node.js + Express | `app/` | 3000 |
-| 3. Data | Database | MySQL 8 (Amazon RDS on AWS) | `db/` | 3306 |
+| 2. App (logic) | REST API | Node.js + Express | `api/` | 3000 |
+| 3. Data | Database | MySQL 8 (Amazon RDS on AWS) | `database/` | 3306 |
 
 ```
 Browser ──► Web tier (Nginx :80) ──/api/*──► App tier (Node :3000) ──► DB tier (MySQL :3306)
 ```
 
 The browser only talks to the web tier. Only the app tier talks to the database.
+
+## Project structure
+
+```
+api/                         Tier 2: REST API
+  src/
+    config/                  settings from environment variables
+    db/                      MySQL connection pool + table creation
+    repositories/            SQL queries only
+    services/                business rules and validation
+    controllers/             HTTP request -> service -> HTTP response
+    routes/                  URL -> controller mapping (/api/health, /api/notes)
+    middleware/              id check, 404 for unknown routes, error handler
+    utils/                   error classes with HTTP status codes
+    app.js                   builds the Express app (used by tests)
+    server.js                entry point: create table, start listening
+  tests/                     API and validation tests (no database needed)
+web/                         Tier 1: index.html, style.css, app.js, Nginx config
+database/schema.sql          Tier 3: table definition (used by local MySQL)
+infra/                       AWS environment definition
+deploy/ec2-deploy.sh         runs on each EC2 instance to pull and start a release
+docker-compose.yml           all three tiers locally
+docker-compose.prod.yml      web + API on each EC2 instance (database is RDS)
+.github/workflows/           CI/CD pipeline: test -> build_and_push -> deploy
+```
+
+A request flows **routes → controllers → services → repositories → MySQL**.
 
 ## API
 
@@ -31,7 +58,7 @@ docker compose up --build
 
 Open http://localhost:8080
 
-Run unit tests: `cd app && npm install && npm test`
+Run the tests: `cd api && npm install && npm test`
 
 ## Deploy on AWS (classic 3-tier layout)
 
